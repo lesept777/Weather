@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Météo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #f72585;
+            --background-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-light: #6c757d;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .location {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .weather-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .weather-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .current-weather {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .temperature {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .feels-like {
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        .weather-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        .weather-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .detail-label {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .forecast-chart {
+            grid-column: 1 / -1;
+            height: 300px;
+        }
+
+        .weather-status {
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 10px 0 20px;
+        }
+
+        .date-time {
+            text-align: center;
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        /* Styles pour le bouton et la recherche */
+        .search-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .search-input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            width: 300px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+        }
+
+        .search-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .search-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: var(--text-light);
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(67, 97, 238, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 10px;
+        }
+
+        .forecast-icons {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            color: var(--accent-color);
+        }
+
+        .forecast-table-container {
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            display: none;
+            color: #dc3545;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Météo</h1>
+            <div class="search-container">
+                <input type="text" id="city-input" class="search-input" placeholder="Entrez une ville (ex: Paris)" value="Paris">
+                <button id="search-button" class="search-button">Obtenir la météo</button>
+            </div>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Chargement des données météo...</p>
+            </div>
+            <div class="error-message" id="error-message"></div>
+            <div class="location">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                </svg>
+                <span id="location">Paris, France</span>
+            </div>
+            <div class="date-time" id="date-time">Lundi 15 Mai 2023, 14:30</div>
+        </header>
+
+        <div class="weather-container">
+            <div class="card">
+                <div class="card-title">Météo Actuelle</div>
+                <div class="current-weather">
+                    <div class="weather-icon" id="weather-icon">☀️</div>
+                    <div class="weather-status" id="weather-status">Ensoleillé</div>
+                    <div class="temperature" id="temperature">  °C</div>
+                    <div class="feels-like" id="feels-like">Ressenti:  °C</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Détails</div>
+                <div class="weather-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Humidité</div>
+                        <div class="detail-value" id="humidity">  %</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Probabilité de pluie</div>
+                        <div class="detail-value" id="precipitation">  %</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Pression</div>
+                        <div class="detail-value" id="pressure">     hPa</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Vent</div>
+                        <div class="detail-value" id="wind">   km/h</div>
+                    </div>
+					<div class="detail-item">
+						<div class="detail-label">Neige ?</div>
+						<div class="detail-value" id="snow">   cm</div>
+					</div>
+					<div class="detail-item">
+						<div class="detail-label">Direction</div>
+						<div class="detail-value" id="wind-direction">N</div>
+					</div>
+                </div>
+            </div>
+
+            <div class="card forecast-chart">
+                <div class="card-title">Température heure par heure</div>
+                <canvas id="hourlyTemperatureChart"></canvas>
+            </div>
+
+            <div class="card forecast-chart">
+                <div class="card-title">Probabilité de pluie heure par heure</div>
+                <canvas id="hourlyRainChart"></canvas>
+            </div>
+
+
+			<!-- Prévisions du lendemain -->
+			<div class="card" style="grid-column: 1 / -1;">
+				<div class="card-title">Prévisions du Lendemain</div>
+				<div class="weather-details">
+					<div class="detail-item">
+						<div class="detail-label">Température Max</div>
+						<div class="detail-value" id="tomorrow-temp-max">  °C</div>
+					</div>
+					<div class="detail-item">
+						<div class="detail-label">Température Min</div>
+						<div class="detail-value" id="tomorrow-temp-min">  °C</div>
+					</div>
+					<div class="detail-item">
+						<div class="detail-label">Probabilité de Pluie</div>
+						<div class="detail-value" id="tomorrow-proba-rain">  %</div>
+					</div>
+					<div class="detail-item">
+						<div class="detail-label">Statut Météo</div>
+						<div class="detail-value" id="tomorrow-weather-status">Ensoleillé</div>
+					</div>
+				</div>
+			</div>
+
+            <div class="card forecast-chart">
+                <div class="card-title">Prévisions sur 7 jours</div>
+                <canvas id="temperatureChart"></canvas>
+            </div>
+
+                        <div class="card forecast-chart">
+                <div class="card-title">Probabilité de pluie sur 7 jours</div>
+                <canvas id="rainChart"></canvas>
+            </div>        </div>
+    </div>
+
+    <script>
+		// Variables globales
+		let temperatureChart;
+		let rainChart;
+        let hourlyTemperatureChart;
+        let hourlyRainChart;
+
+
+		// Mise à jour de la date et l'heure
+		function updateDateTime() {
+			const now = new Date();
+			const options = { 
+				weekday: 'long', 
+				year: 'numeric', 
+				month: 'long', 
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit'
+			};
+			document.getElementById('date-time').textContent = now.toLocaleDateString('fr-FR', options);
+		}
+
+		updateDateTime();
+		setInterval(updateDateTime, 60000);
+
+
+		// Fonction pour obtenir les coordonnées géographiques d'une ville
+		async function getGeoCoordinates(city) {
+			try {
+				const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=fr&format=json`);
+				const data = await response.json();
+				
+				if (!data.results || data.results.length === 0) {
+					throw new Error("Ville non trouvée. Veuillez essayer une autre ville.");
+				}
+				
+				return {
+					latitude: data.results[0].latitude,
+					longitude: data.results[0].longitude,
+					name: data.results[0].name,
+					country: data.results[0].country
+				};
+			} catch (error) {
+				throw new Error("Erreur lors de la recherche de la ville: " + error.message);
+			}
+		}
+
+
+        // Fonction pour obtenir les données météo
+        async function getWeatherData(latitude, longitude) {
+            try {
+                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,relativehumidity_2m,apparent_temperature,precipitation_probability,surface_pressure,weathercode,windspeed_10m,snowfall&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&current=temperature_2m,apparent_temperature,is_day,wind_speed_10m,precipitation,snowfall,weather_code,surface_pressure,wind_direction_10m,relative_humidity_2m`);
+                //const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,relativehumidity_2m,apparent_temperature,precipitation_probability,surface_pressure,weathercode,windspeed_10m,snowfall&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&current_weather=true`);
+                
+                if (!response.ok) {
+                    throw new Error("Erreur lors de la récupération des données météo");
+                }
+                
+                // return await response.json();
+				const weatherData = await response.json();
+                // console.log(weatherData); // Ajout d'un log pour vérifier la structure des données
+                return weatherData;
+            } catch (error) {
+                throw new Error("Erreur lors de la récupération des données météo: " + error.message);
+            }
+        }
+
+
+        // Fonction pour mettre à jour l'interface avec les données météo
+        function updateWeatherUI(weatherData, locationData) {
+            // Mise à jour de la localisation
+            document.getElementById('location').textContent = `${locationData.name}, ${locationData.country}`;
+            
+            // Données actuelles
+            const currentWeather = weatherData.current//_weather;
+            const hourlyData = weatherData.hourly;
+            const currentHourIndex = new Date().getHours();
+            
+            // Température actuelle
+            document.getElementById('temperature').textContent = `${Math.round(currentWeather.temperature_2m)}°C`;
+            
+            // Température ressentie (utilisation de l'heure actuelle dans les données horaires)
+            document.getElementById('feels-like').textContent = `Ressenti: ${Math.round(weatherData.hourly.apparent_temperature[currentHourIndex])}°C`;
+            
+            // Humidité
+            document.getElementById('humidity').textContent = `${currentWeather.relative_humidity_2m}%`;
+            
+            // Probabilité de précipitation
+            document.getElementById('precipitation').textContent = `${weatherData.hourly.precipitation_probability[currentHourIndex]}%`;
+            
+            // Pression
+            document.getElementById('pressure').textContent = `${Math.round(weatherData.hourly.surface_pressure[currentHourIndex])} hPa`;
+            
+            // Vent
+            document.getElementById('wind').textContent = `${Math.round(currentWeather.wind_speed_10m)} km/h`;
+            
+            // Neige
+            document.getElementById('snow').textContent = `${Math.round(currentWeather.snowfall)} cm`;
+            
+			// Direction du vent
+			const windDirection = currentWeather.wind_direction_10m;
+			const windDirectionLabel = getWindDirectionLabel(windDirection);
+			document.getElementById('wind-direction').textContent = windDirectionLabel;
+            
+			// Icône et statut météo basés sur le code météo
+            updateWeatherIconAndStatus(currentWeather.weather_code);
+            
+            // Mise à jour des graphiques horaires
+            updateHourlyTemperatureChart(hourlyData);
+            updateHourlyRainChart(hourlyData);
+
+            // Mise à jour du graphique de prévision
+            updateTemperatureChart(weatherData.daily);
+			updateRainChart(weatherData.daily);
+			
+			// Nouvelle fonction pour les prévisions du lendemain
+			updateTomorrowForecast(weatherData.daily);
+
+            // Créer le tableau de prévisions
+            const forecastTableContainer = document.createElement('div');
+            forecastTableContainer.classList.add('forecast-table-container');
+
+            // Effacer le contenu précédent du tableau
+            const existingTable = document.querySelector('.forecast-table-container table');
+            if (existingTable) {
+                existingTable.remove();
+            }
+
+            // Créer le tableau
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+
+            // Créer la première ligne (dates)
+            const thead = table.createTHead();
+            const headerRow = thead.insertRow();
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(weatherData.daily.time[i]);
+                const headerCell = headerRow.insertCell();
+                headerCell.textContent = date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+                headerCell.style.border = '1px solid #ddd';
+                headerCell.style.padding = '8px';
+                headerCell.style.textAlign = 'center';
+            }
+
+            // Créer la deuxième ligne (icônes)
+            const tbody = table.createTBody();
+            const row = tbody.insertRow();
+            for (let i = 0; i < 7; i++) {
+                const weatherCode = weatherData.daily.weathercode[i];
+                let icon = getWeatherIcon(weatherCode);
+                const iconCell = row.insertCell();
+                iconCell.textContent = icon;
+                iconCell.style.border = '1px solid #ddd';
+                iconCell.style.padding = '8px';
+                iconCell.style.textAlign = 'center';
+            }
+
+            forecastTableContainer.appendChild(table);
+            document.querySelector('.weather-container').appendChild(forecastTableContainer);
+       }
+
+
+        function getWeatherIcon(weatherCode) {
+            let icon;
+            switch (true) {
+                case weatherCode === 0:
+                    icon = "☀️";
+                    break;
+                case weatherCode === 1:
+                    icon = "🌤️";
+                    break;
+                case weatherCode === 2:
+                    icon = "⛅";
+                    break;
+                case weatherCode === 3:
+                    icon = "☁️";
+                    break;
+                case weatherCode >= 45 && weatherCode <= 48:
+                    icon = "🌫️";
+                    break;
+                case weatherCode >= 51 && weatherCode <= 55:
+                    icon = "🌦️";
+                    break;
+                case weatherCode >= 56 && weatherCode <= 57:
+                    icon = "❄️";
+                    break;
+                case weatherCode >= 61 && weatherCode <= 65:
+                    icon = "🌧️";
+                    break;
+                case weatherCode >= 66 && weatherCode <= 67:
+                    icon = "🌨️";
+                    break;
+                case weatherCode >= 68 && weatherCode <= 70:
+                    icon = "❄️";
+                    break;
+                case weatherCode >= 71 && weatherCode <= 77:
+                    icon = "❄️";
+                    break;
+                case weatherCode >= 80 && weatherCode <= 82:
+                    icon = "🌧️";
+                    break;
+                case weatherCode >= 85 && weatherCode <= 86:
+                    icon = "🌨️";
+                    break;
+                case weatherCode >= 95 && weatherCode <= 99:
+                    icon = "⛈️";
+                    break;
+                default:
+                    icon = "🌡️";
+        }
+            return icon;
+        }
+
+		
+		
+		// Fonction pour convertir l'angle du vent en direction cardinale
+		function getWindDirectionLabel(angle) {
+			const directions = [
+				'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+				'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'
+			];
+			const index = Math.round((angle % 360) / 22.5);
+			return directions[index % 16];
+		}
+
+
+        // Fonction pour mettre à jour l'icône et le statut météo
+        function updateWeatherIconAndStatus(weatherCode) {
+            let icon, status;
+            
+            // Correspondance des codes météo avec les icônes et statuts
+            // Basé sur les codes WMO: https://www.nodc.noaa.gov/archive/arc0021/0002199/1.1/data/0-data/HTML/WMO-CODE/WMO4677.HTM
+            switch(true) {
+                case weatherCode === 0:
+                    icon = "☀️";
+                    status = "Ciel dégagé";
+                    break;
+                case weatherCode === 1:
+                    icon = "🌤️";
+                    status = "Principalement dégagé";
+                    break;
+                case weatherCode === 2:
+                    icon = "⛅";
+                    status = "Partiellement nuageux";
+                    break;
+                case weatherCode === 3:
+                    icon = "☁️";
+                    status = "Nuageux";
+                    break;
+                case weatherCode >= 45 && weatherCode <= 48:
+                    icon = "🌫️";
+                    status = "Brouillard";
+                    break;
+                case weatherCode >= 51 && weatherCode <= 55:
+                    icon = "🌦️";
+                    status = "Bruine légère";
+                    break;
+                case weatherCode >= 56 && weatherCode <= 57:
+                    icon = "❄️";
+                    status = "Bruine verglaçante";
+                    break;
+                case weatherCode >= 61 && weatherCode <= 65:
+                    icon = "🌧️";
+                    status = "Pluie";
+                    break;
+                case weatherCode >= 66 && weatherCode <= 67:
+                    icon = "🌨️";
+                    status = "Pluie verglaçante";
+                    break;
+                case weatherCode >= 68 && weatherCode <= 70:
+                    icon = "❄️";
+                    status = "Neige légère";
+                    break;
+                case weatherCode >= 71 && weatherCode <= 77:
+                    icon = "❄️";
+                    status = "Neige";
+                    break;
+                case weatherCode >= 80 && weatherCode <= 82:
+                    icon = "🌧️";
+                    status = "Averses de pluie";
+                    break;
+                case weatherCode >= 85 && weatherCode <= 86:
+                    icon = "🌨️";
+                    status = "Averses de neige";
+                    break;
+                case weatherCode >= 95 && weatherCode <= 99:
+                    icon = "⛈️";
+                    status = "Orage";
+                    break;
+                default:
+                    icon = "🌡️";
+                    status = "Météo inconnue";
+            }
+            
+            document.getElementById('weather-icon').textContent = icon;
+            document.getElementById('weather-status').textContent = status;
+        }
+
+
+                // Fonction pour ajouter les icônes de prévisions
+        function addForecastIcons(weatherData) {
+            const forecastIconsContainer = document.getElementById('forecast-icons');
+            const dailyForecast = weatherData.daily;
+
+            for (let i = 0; i < 7; i++) {
+                const weatherCode = dailyForecast.weathercode[i];
+                let icon;
+
+                switch (true) {
+                    case weatherCode === 0:
+                        icon = "☀️";
+                        break;
+                    case weatherCode === 1:
+                        icon = "🌤️";
+                        break;
+                    case weatherCode === 2:
+                        icon = "⛅";
+                        break;
+                    case weatherCode === 3:
+                        icon = "☁️";
+                        break;
+                    case weatherCode >= 45 && weatherCode <= 48:
+                        icon = "🌫️";
+                        break;
+                    case weatherCode >= 51 && weatherCode <= 55:
+                        icon = "🌦️";
+                        break;
+                    case weatherCode >= 56 && weatherCode <= 57:
+                        icon = "❄️";
+                        break;
+                    case weatherCode >= 61 && weatherCode <= 65:
+                        icon = "🌧️";
+                        break;
+                    case weatherCode >= 66 && weatherCode <= 67:
+                        icon = "🌨️";
+                        break;
+                    case weatherCode >= 68 && weatherCode <= 70:
+                        icon = "❄️";
+                        break;
+                    case weatherCode >= 71 && weatherCode <= 77:
+                        icon = "❄️";
+                        break;
+                    case weatherCode >= 80 && weatherCode <= 82:
+                        icon = "🌧️";
+                        break;
+                    case weatherCode >= 85 && weatherCode <= 86:
+                        icon = "🌨️";
+                        break;
+                    case weatherCode >= 95 && weatherCode <= 99:
+                        icon = "⛈️";
+                        break;
+                    default:
+                        icon = "🌡️";
+                }
+
+                const iconElement = document.createElement('span');
+                iconElement.classList.add('forecast-icon');
+                iconElement.textContent = icon;
+                forecastIconsContainer.appendChild(iconElement);
+            }
+        }                       
+
+
+		// Fonction pour mettre à jour les prévisions du lendemain
+		function updateTomorrowForecast(dailyData) {
+			// Index 1 = demain
+			const index = 1;
+
+			// Température Max
+			const tempMax = dailyData.temperature_2m_max[index];
+			const tempMin = dailyData.temperature_2m_min[index];
+			const probaRain = dailyData.precipitation_probability_max[index];
+			const weatherCode = dailyData.weathercode[index];
+
+			document.getElementById('tomorrow-temp-max').textContent = `${Math.round(tempMax)}°C`;
+			document.getElementById('tomorrow-temp-min').textContent = `${Math.round(tempMin)}°C`;
+			document.getElementById('tomorrow-proba-rain').textContent = `${Math.round(probaRain)}%`;
+
+			let status;
+			switch (true) {
+				case weatherCode === 0:
+					status = "Ciel dégagé";
+					break;
+				case weatherCode === 1:
+					status = "Principalement dégagé";
+					break;
+				case weatherCode === 2:
+					status = "Partiellement nuageux";
+					break;
+				case weatherCode === 3:
+					status = "Nuageux";
+					break;
+				case weatherCode >= 45 && weatherCode <= 48:
+					status = "Brouillard";
+					break;
+				case weatherCode >= 51 && weatherCode <= 55:
+					status = "Bruine légère";
+					break;
+				case weatherCode >= 56 && weatherCode <= 57:
+					status = "Bruine verglaçante";
+					break;
+				case weatherCode >= 61 && weatherCode <= 65:
+					status = "Pluie";
+					break;
+				case weatherCode >= 66 && weatherCode <= 67:
+					status = "Pluie verglaçante";
+					break;
+				case weatherCode >= 68 && weatherCode <= 70:
+					status = "Neige légère";
+					break;
+				case weatherCode >= 71 && weatherCode <= 77:
+					status = "Neige";
+					break;
+				case weatherCode >= 80 && weatherCode <= 82:
+					status = "Averses de pluie";
+					break;
+				case weatherCode >= 85 && weatherCode <= 86:
+					status = "Averses de neige";
+					break;
+				case weatherCode >= 95 && weatherCode <= 99:
+					status = "Orage";
+					break;
+				default:
+					status = "Météo inconnue";
+			}
+			document.getElementById('tomorrow-weather-status').textContent = status;
+		}
+
+
+		// Fonction pour mettre à jour le graphique de température
+		function updateTemperatureChart(dailyData) {
+			// Formatage des dates pour les labels du graphique
+			const days = dailyData.time.map(date => {
+				const d = new Date(date);
+				return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+			});
+			
+			// Données de température
+			const tempMax = dailyData.temperature_2m_max.map(temp => Math.round(temp));
+			const tempMin = dailyData.temperature_2m_min.map(temp => Math.round(temp));
+			
+			// Si le graphique existe déjà, le détruire pour éviter les doublons
+			if (temperatureChart) {
+				temperatureChart.destroy();
+			}
+			
+			// Création du nouveau graphique
+			const ctx = document.getElementById('temperatureChart').getContext('2d');
+			temperatureChart = new Chart(ctx, {
+				type: 'line',
+				data: {
+					labels: days,
+					datasets: [
+						{
+							label: 'Température Max (°C)',
+							data: tempMax,
+							borderColor: '#f72585',
+							backgroundColor: 'rgba(247, 37, 133, 0.1)',
+							borderWidth: 2,
+							tension: 0.3,
+							fill: false
+						},
+						{
+							label: 'Température Min (°C)',
+							data: tempMin,
+							borderColor: '#4361ee',
+							backgroundColor: 'rgba(67, 97, 238, 0.1)',
+							borderWidth: 2,
+							tension: 0.3,
+							fill: false
+						}
+					]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					layout: {
+						padding: {
+							left: 10,   // Ajustez ces valeurs
+							right: 10,  // selon vos besoins
+							top: 10,
+							bottom: 30
+						}
+					},
+					plugins: {
+						legend: {
+							position: 'top',
+						},
+						tooltip: {
+							mode: 'index',
+							intersect: false,
+						}
+					},
+					scales: {
+						y: {
+							beginAtZero: false,
+							grid: {
+								color: 'rgba(0, 0, 0, 0.05)'
+							}
+						},
+						x: {
+							grid: {
+								display: false
+							}
+						}
+					}
+				}
+			});
+		}
+
+
+		// Fonction pour mettre à jour le graphique de probabilité de pluie
+		function updateRainChart(dailyData) {
+			// Données de probabilité de pluie
+			const probarain = dailyData.precipitation_probability_max.map(temp => Math.round(temp));
+			
+			// Si le graphique existe déjà, le détruire pour éviter les doublons
+			if (rainChart) {
+				rainChart.destroy();
+			}
+			
+			// Création du nouveau graphique
+			const ctx = document.getElementById('rainChart').getContext('2d');
+			rainChart = new Chart(ctx, {
+				type: 'line',
+				data: {
+					labels: dailyData.time.map(date => {
+						const d = new Date(date);
+						return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+					}),
+					datasets: [{
+						label: 'Probabilité de pluie (%)',
+						data: probarain,
+						borderColor: 'rgba(75, 192, 192, 1)',
+						backgroundColor: 'rgba(255, 255, 255, 0.5)',
+						borderWidth: 2,
+						tension: 0.3,
+						fill: true
+					}]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					layout: {
+						padding: {
+							left: 10,   // Ajustez ces valeurs
+							right: 10,  // selon vos besoins
+							top: 10,
+							bottom: 30
+						}
+					},
+					plugins: {
+						legend: {
+							position: 'top',
+						},
+						tooltip: {
+							mode: 'index',
+							intersect: false,
+						}
+					},
+					scales: {
+						y: {
+							beginAtZero: true,
+							grid: {
+								color: 'rgba(0, 0, 0, 0.05)'
+							}
+						},
+						x: {
+							grid: {
+								display: false
+							}
+						}
+					}
+				}
+			});
+		}
+
+
+        // Fonction pour mettre à jour le graphique de température heure par heure
+        function updateHourlyTemperatureChart(hourlyData) {
+            // Obtenir la date d'aujourd'hui et de demain à minuit
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            // Labels fixes : heures de 0 à 23
+            const hoursLabels = [];
+            for (let h = 0; h < 24; h++) {
+                hoursLabels.push(h.toString().padStart(2, '0') + 'h');
+            }
+
+            // Initialiser les tableaux de températures avec null (au cas où)
+            const todayTemperatures = new Array(24).fill(null);
+            const tomorrowTemperatures = new Array(24).fill(null);
+
+            // Remplir todayTemperatures
+            hourlyData.time.forEach((timeStr, index) => {
+                const dateTime = new Date(timeStr);
+                if (dateTime >= today && dateTime < tomorrow) {
+                    const hour = dateTime.getHours();
+                    todayTemperatures[hour] = Math.round(hourlyData.temperature_2m[index]);
+                }
+            });
+            // Remplir tomorrowTemperatures
+            const dayAfterTomorrow = new Date(tomorrow);
+            dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+            hourlyData.time.forEach((timeStr, index) => {
+                const dateTime = new Date(timeStr);
+                if (dateTime >= tomorrow && dateTime < dayAfterTomorrow) {
+                    const hour = dateTime.getHours();
+                    tomorrowTemperatures[hour] = Math.round(hourlyData.temperature_2m[index]);
+                }
+            });
+
+            // Détruire l'ancien graphique s'il existe
+            if (hourlyTemperatureChart) {
+                hourlyTemperatureChart.destroy();
+            }
+            const ctx = document.getElementById('hourlyTemperatureChart').getContext('2d');
+            hourlyTemperatureChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hoursLabels,
+                    datasets: [
+                        {
+                            label: "Aujourd'hui",
+                            data: todayTemperatures,
+                            borderColor: 'red',
+                            backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0, // Supprime les petits cercles
+                            pointHitRadius: 0, // Supprime les petits cercles
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'Demain',
+                            data: tomorrowTemperatures,
+                            borderColor: 'blue',
+                            backgroundColor: 'rgba(0, 0, 255, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0, // Supprime les petits cercles
+                            pointHitRadius: 0, // Supprime les petits cercles
+                            borderWidth: 2,
+                        }
+                    ]
+                            },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            left: 10,
+                            right: 10,
+                            top: 10,
+                            bottom: 30
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Température (°C)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Heure'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+
+
+        // Fonction pour mettre à jour le graphique de probabilité de pluie heure par heure
+        function updateHourlyRainChart(hourlyData) {
+            // Obtenir la date d'aujourd'hui et de demain à minuit
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            // Labels fixes : heures de 0 à 23
+            const hoursLabels = [];
+            for (let h = 0; h < 24; h++) {
+                hoursLabels.push(h.toString().padStart(2, '0') + 'h');
+            }
+
+            // Initialiser les tableaux de températures avec null (au cas où)
+            const todayPrecipitation = new Array(24).fill(null);
+            const tomorrowPrecipitation = new Array(24).fill(null);
+
+            // Remplir todayTemperatures
+            hourlyData.time.forEach((timeStr, index) => {
+                const dateTime = new Date(timeStr);
+                if (dateTime >= today && dateTime < tomorrow) {
+                    const hour = dateTime.getHours();
+                    todayPrecipitation[hour] = Math.round(hourlyData.precipitation_probability[index]);
+                }
+            });
+            // Remplir tomorrowTemperatures
+            const dayAfterTomorrow = new Date(tomorrow);
+            dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+            hourlyData.time.forEach((timeStr, index) => {
+                const dateTime = new Date(timeStr);
+                if (dateTime >= tomorrow && dateTime < dayAfterTomorrow) {
+                    const hour = dateTime.getHours();
+                    tomorrowPrecipitation[hour] = Math.round(hourlyData.precipitation_probability[index]);
+                }
+            });
+
+            // Si le graphique existe déjà, le détruire pour éviter les doublons
+            if (hourlyRainChart) {
+                hourlyRainChart.destroy();
+            }
+
+            // Création du nouveau graphique
+            const ctx = document.getElementById('hourlyRainChart').getContext('2d');
+            hourlyRainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hoursLabels,
+                    datasets: [
+                        {
+                            label: "Aujourd'hui",
+                            data: todayPrecipitation,
+                            borderColor: 'rgba(192, 75, 192, 1)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0, // Supprime les petits cercles
+                            pointHitRadius: 0, // Supprime les petits cercles
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'Demain',
+                            data: tomorrowPrecipitation,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0, // Supprime les petits cercles
+                            pointHitRadius: 0, // Supprime les petits cercles
+                            borderWidth: 2,
+                        }
+                    ]
+                            },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            left: 10,
+                            right: 10,
+                            top: 10,
+                            bottom: 30
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Probabilité de pluie (%)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Heure'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // Fonction pour obtenir le jour suivant
+        function tomorrow(date) {
+            const tomorrow = new Date(date);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return tomorrow;
+        }
+
+
+        // Fonction pour afficher les erreurs
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+            
+            // Cacher le message d'erreur après 5 secondes
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+
+
+        // Fonction principale pour récupérer et afficher les données météo
+        async function fetchWeatherData() {
+            const cityInput = document.getElementById('city-input').value.trim();
+            
+            if (!cityInput) {
+                showError("Veuillez entrer le nom d'une ville.");
+                return;
+            }
+            
+            // Afficher l'indicateur de chargement
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+            
+            try {
+                // Obtenir les coordonnées géographiques
+                const locationData = await getGeoCoordinates(cityInput);
+                
+                // Obtenir les données météo
+                const weatherData = await getWeatherData(locationData.latitude, locationData.longitude);
+                
+                // Mettre à jour l'interface
+				updateWeatherUI(weatherData, locationData);
+				
+				// Mettre à jour les graphiques
+				updateTemperatureChart(weatherData.daily);
+				updateRainChart(weatherData.daily);
+                
+                // Cacher l'indicateur de chargement
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+
+        // Initialiser le graphique au chargement de la page
+        document.addEventListener('DOMContentLoaded', () => {
+            // initChart();
+            
+            // Ajouter l'événement de clic au bouton de recherche
+            document.getElementById('search-button').addEventListener('click', fetchWeatherData);
+            
+            // Ajouter l'événement de touche Entrée au champ de saisie
+            document.getElementById('city-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    fetchWeatherData();
+                }
+            });
+            
+            // Charger les données météo pour Paris par défaut
+            fetchWeatherData();
+        });
+    </script>
+</body>
+</html>
